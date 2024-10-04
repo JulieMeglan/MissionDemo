@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class NewBehaviourScript : MonoBehaviour
+public class Slingshot : MonoBehaviour
 {
     
     [Header("Set in Inspector")]
@@ -50,51 +50,60 @@ public class NewBehaviourScript : MonoBehaviour
     }
 
     void Update () {
+        if (!aimingMode) return;
 
-		if (!aimingMode) return;
+        Vector3 mousePos2D = Input.mousePosition;
+        mousePos2D.z = -Camera.main.transform.position.z;
+        Vector3 mousePos3D = Camera.main.ScreenToWorldPoint(mousePos2D);
 
-		Vector3 mousePos2D = Input.mousePosition;
-		mousePos2D.z = -Camera.main.transform.position.z;
-		Vector3 mousePos3D = Camera.main.ScreenToWorldPoint(mousePos2D);
-
-		Vector3 mouseDelta = mousePos3D - launchPos;
-		float maxMagnitude = this.GetComponent<SphereCollider>().radius;
-		if (mouseDelta.magnitude > maxMagnitude) {
-			mouseDelta.Normalize();
-			mouseDelta *= maxMagnitude;
-		}
-
-		Vector3 projPos = launchPos + mouseDelta;
-		projectile.transform.position = projPos;
-
-        lineRenderer.SetPosition(0, launchPos); 
-        lineRenderer.SetPosition(1, projectile.transform.position); 
-
-
-        if (Input.GetMouseButtonUp(0)){
-			aimingMode = false;
-            Rigidbody projRB = projectile.GetComponent<Rigidbody>();
-            projRB.isKinematic = false;
-            projRB.collisionDetectionMode = CollisionDetectionMode.Continuous;
-            projRB.velocity = -mouseDelta * velocityMult;
-
-            FollowCam.SWITCH_VIEW(FollowCam.eView.slingshot); 
-
-            FollowCam.POI = projectile; 
-
-
-            Instantiate<GameObject>(projLinePrefab, projectile.transform);
-			projectile = null;
-            MissionDemolition.SHOT_FIRED();
-
-            lineRenderer.enabled = false;
-
-            audioSource.Play();
-
-
+        Vector3 mouseDelta = mousePos3D - launchPos;
+        float maxMagnitude = this.GetComponent<SphereCollider>().radius;
+        if (mouseDelta.magnitude > maxMagnitude) {
+            mouseDelta.Normalize();
+            mouseDelta *= maxMagnitude;
         }
 
+        Vector3 projPos = launchPos + mouseDelta;
+
+        if (projectile != null)
+        {
+            projectile.transform.position = projPos;
+            lineRenderer.SetPosition(0, launchPos); 
+            lineRenderer.SetPosition(1, projectile.transform.position); 
+        }
+        // else
+        // {
+        //     Debug.LogError("Projectile is null. Check prefabProjectile assignment in the Inspector.");
+        // }
+
+        if (Input.GetMouseButtonUp(0)){
+            aimingMode = false;
+
+            if (projectile != null) // Make sure projectile is not null before accessing it
+            {
+                Rigidbody projRB = projectile.GetComponent<Rigidbody>();
+                projRB.isKinematic = false;
+                projRB.collisionDetectionMode = CollisionDetectionMode.Continuous;
+                projRB.velocity = -mouseDelta * velocityMult;
+
+                FollowCam.SWITCH_VIEW(FollowCam.eView.slingshot); 
+                FollowCam.POI = projectile; 
+
+                Instantiate<GameObject>(projLinePrefab, projectile.transform);
+                projectile = null;
+                MissionDemolition.SHOT_FIRED();
+
+                lineRenderer.enabled = false;
+
+                audioSource.Play();
+            }
+            // else
+            // {
+            //     Debug.LogError("Projectile is null. Cannot launch.");
+            // }
+        }
     }
+
 
 
     void OnMouseDown() {
